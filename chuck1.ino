@@ -189,61 +189,67 @@ static int nunchuck_accelz()
   return nunchuck_buf[4];   // FIXME: this leaves out 2-bits of the data
 }
 
-int loop_cnt = 0;
-
 byte joyx, joyy, zbut, cbut, accx, accy, accz;
 
 void _print() {
   Serial.print("Z Button:  ");
   Serial.print(zbut);
-  Serial.print("\tC Button:  ");
-  Serial.print(cbut);
+  //Serial.print("\tC Button:  ");
+  //Serial.print(cbut);
   Serial.print("\tX Joy:  ");
   Serial.print(map(joyx, 15, 221, 0, 255));
   Serial.print("\tY Joy:  ");
-  Serial.print(map(joyy, 29, 229, 0, 255));
-  Serial.print("\tX Accel:  ");
-  Serial.print(accx);
-  Serial.print("\tY Accel:  ");
-  Serial.print(accy);
-  Serial.println("\tZ Accel:  ");
+  Serial.println(map(joyy, 29, 229, 0, 255));
+  //Serial.print("\tX Accel:  ");
+  //Serial.print(accx);
+  //Serial.print("\tY Accel:  ");
+  //Serial.print(accy);
+  //Serial.println("\tZ Accel:  ");
 }
 
 #include <Servo.h>
 
-Servo myservo;  
+Servo servoRight, servoLeft;
+int rightStop = 100;
+int leftStop = 95;
 
 void setup() {
   Serial.begin(9600);
   nunchuck_setpowerpins();
-  nunchuck_init(); // send the initilization handshake
+  nunchuck_init();
   Serial.println("Wii Nunchuck Ready");
-  myservo.attach(9);
+  servoRight.attach(9);
+  servoLeft.attach(10);
 }
 
 void loop() {
-  if ( loop_cnt > 10 ) { // every 100 msecs get new data
-    loop_cnt = 0;
+  nunchuck_get_data();
+  
+  zbut = nunchuck_zbutton();  //  0 - 1
+  cbut = nunchuck_cbutton();  //  0 - 1
+  joyx = nunchuck_joyx();     //  15 - 221
+  joyy = nunchuck_joyy();     //  29 - 229
+  accx = nunchuck_accelx();   //  70 - 182
+  accy = nunchuck_accely();   //  65 - 173
+  accz = nunchuck_accelz();   //  0 - 255
 
-    nunchuck_get_data();
-
-    zbut = nunchuck_zbutton();  //  0 - 1
-    cbut = nunchuck_cbutton();  //  0 - 1
-    joyx = nunchuck_joyx();     //  15 - 221
-    joyy = nunchuck_joyy();     //  29 - 229
-    accx = nunchuck_accelx();   //  70 - 182
-    accy = nunchuck_accely();   //  65 - 173
-    accz = nunchuck_accelz();   //  0 - 255
-
-    _print();
-    
-    if(zbut==1) {
-      myservo.write(joyy-33); // 133 is joyy center position on this nunchuck
-    } else {
-      myservo.write(100); // 100 is stopped position for this continuous rotation servo
-    }
+  //_print();
+  
+  if(joyx <= 100) { // left
+    servoRight.write(-200);
+    servoLeft.write(leftStop);        
   }
-  loop_cnt++;
-  delay(1);
-
+  else if(joyx >= 150) { // right
+    servoRight.write(rightStop);
+    servoLeft.write(200);
+  }
+  else if(joyy > 150) { // run straight
+    servoRight.write(-255);
+    servoLeft.write(255); 
+  }
+  else {
+    servoRight.write(rightStop);
+    servoLeft.write(leftStop);         
+  }
+  delay(10);
 }
